@@ -47,7 +47,7 @@ void UQuantumComputingActorComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	//ObjMinimumQubitCount = 1;
-	ObjQubitCount = 3;
+	//ObjQubitCount = 3;
 	ObjQubitCountDefault = 4;
 	FixedQubitCountDefaultFlag = false;
 	// ...

@@ -83,7 +83,7 @@ public:
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite) TMap<FIntPoint, FIntPoint> MapIntSpecificArray;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjMaximumOperatorCount = 20;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjOperatorCount;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjQubitCount;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly) int32 ObjQubitCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjDimQ;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool FixedQubitCountDefaultFlag;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjQubitCountDefault = 3;
@@ -96,4 +96,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TMap<FIntPoint, FVector2D> SpecificStateMap;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TMap<FIntPoint, FQuantumTransitionTo> GeneralOperatorMap;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TMap<FIntPoint, FQuantumTransitionTo> SpecificOperatorMap;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 };
