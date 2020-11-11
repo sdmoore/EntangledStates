@@ -83,7 +83,7 @@ public:
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite) TMap<FIntPoint, FIntPoint> MapIntSpecificArray;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjMaximumOperatorCount = 20;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjOperatorCount;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly) int32 ObjQubitCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjQubitCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjDimQ;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool FixedQubitCountDefaultFlag;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 ObjQubitCountDefault = 3;

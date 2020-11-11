@@ -360,7 +360,7 @@ int32 UQuantumComputingActorComponent::FxnSetCircuitDescription(TMap<int32, FVec
 int32 UQuantumComputingActorComponent::FxnSetCircuitDescriptionSpecified(int32 QubitCountInput, TMap<int32, FVector2D> InputKet, TArray<FQuantumGateSpecifier> InputList) {
 	ObjQubitCount = QubitCountInput;
 	//ObjQubitCount = ObjQubitCountDefault;
-	int32 LocalMax = ObjMinimumQubitCount;
+	int32 LocalMax = 0;
 	for (auto& iter0 : InputList) {
 		for (auto& iter1 : iter0.ParameterQubits) {
 			if (iter1 > LocalMax) {
@@ -460,4 +460,186 @@ int32 UQuantumComputingActorComponent::FxnSetCircuitDescriptionSpecified(int32 Q
 		//}
 		return 0;
 	}
+}
+int32 UQuantumComputingActorComponent::FxnSetGeneralCircuit(int32 QubitCountInput, TMap<int32, FVector2D> InputKet, TArray<FQuantumGateSpecifier> InputList) {
+	ObjQubitCount = QubitCountInput;
+	//ObjQubitCount = ObjQubitCountDefault;
+	int32 LocalMax = 0;
+	for (auto& iter0 : InputList) {
+		for (auto& iter1 : iter0.ParameterQubits) {
+			if (iter1 > LocalMax) {
+				LocalMax = iter1;
+			}
+		}
+	}
+	if (InputList.Num() > ObjMaximumOperatorCount) {
+		return 1;
+	}
+	else if ((LocalMax + 1) > ObjQubitCount) {
+		return 2;
+	}
+	else {
+		ObjOperatorCount = InputList.Num();
+		ObjDimQ = intpow(2, ObjQubitCount);
+		float TempFloat = (float)(1.0 / ObjDimQ);
+		ObjFloatThreshold = 0.001 * TempFloat;
+		//TMap<int32, FVector2D> LocalStartKet;
+		//for (int32 i = 0; i < ObjDimQ; i++) {
+		//	if (SpecificStateMap.Contains(FIntPoint(-1, i))) {
+		//		LocalStartKet.Add(i, SpecificStateMap[FIntPoint(-1, i)]);
+		//	}
+		//}
+		SpecificStateMap.Empty();
+		GeneralOperatorMap.Empty();
+		SpecificOperatorMap.Empty();
+		//for (int32 i = 0; i < ObjDimQ; i++) {
+		//	if (LocalStartKet.Contains(i)) {
+		//		SpecificStateMap.Add(FIntPoint(-1, i), LocalStartKet[i]);
+		//	}
+		//}
+		for (auto& iter : InputKet) {
+			SpecificStateMap.Add(FIntPoint(-1, iter.Key), iter.Value);
+		}
+		//if (ObjStartStateIndex > 0 && ObjStartStateIndex < ObjDimQ) {
+		//	SpecificStateMap.Add(FIntPoint(-1, ObjStartStateIndex), FVector2D(1, 0));
+		//}
+		//else {
+		//	SpecificStateMap.Add(FIntPoint(-1, 0), FVector2D(1, 0));
+		//}
+		for (int32 i = 0; i < ObjOperatorCount; i++) {
+			ParseNameIntArrayToGateOperator(ObjQubitCount, i, InputList[i].EnumGateType, InputList[i].ParameterQubits);
+		}
+		for (int32 i = 0; i < ObjOperatorCount; i++) {
+			for (int32 j = 0; j < ObjDimQ; j++) {
+				FIntPoint CurrentFIP = FIntPoint(i, j);
+				FIntPoint PreviousStateFIP = FIntPoint(i - 1, j);
+				if (SpecificStateMap.Contains(PreviousStateFIP) &&
+					GeneralOperatorMap.Contains(CurrentFIP)) {
+					FQuantumTransitionTo LocalFQTT;
+					GeneralOperatorMap[CurrentFIP];
+					if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 0) {
+						LocalFQTT.Enum_012_SameSplitFlip = 0;
+						LocalFQTT.EndState0 = GeneralOperatorMap[CurrentFIP].EndState0;
+						LocalFQTT.TransitionValue0 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue0);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState0), LocalFQTT.TransitionValue0);
+					}
+					else if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 1) {
+						LocalFQTT.Enum_012_SameSplitFlip = 1;
+						LocalFQTT.EndState0 = GeneralOperatorMap[CurrentFIP].EndState0;
+						LocalFQTT.TransitionValue0 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue0);
+						LocalFQTT.EndState1 = GeneralOperatorMap[CurrentFIP].EndState1;
+						LocalFQTT.TransitionValue1 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue1);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState0), LocalFQTT.TransitionValue0);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState1), LocalFQTT.TransitionValue1);
+					}
+					else if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 2) {
+						LocalFQTT.Enum_012_SameSplitFlip = 2;
+						LocalFQTT.EndState1 = GeneralOperatorMap[CurrentFIP].EndState1;
+						LocalFQTT.TransitionValue1 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue1);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState1), LocalFQTT.TransitionValue1);
+					}
+					SpecificOperatorMap.Add(CurrentFIP, LocalFQTT);
+				}
+			}
+		}
+		//TArray<FIntPoint> KeySet;
+		//SpecificStateMap.GenerateKeyArray(KeySet);
+		//for (auto& iter: KeySet) {
+		//	float LocalSize = SpecificStateMap[iter].SizeSquared();
+		//	float LocalCompare = ObjFloatThreshold;
+		//	if (SpecificStateMap[iter].SizeSquared() < ((1 / ObjDimQ) * 0.001)) {
+		//		SpecificStateMap.Remove(iter);
+		//	}
+		//	if (LocalSize < LocalCompare) {
+		//		SpecificStateMap.Remove(iter);
+		//	}
+		//}
+		return 0;
+	}
+}
+int32 UQuantumComputingActorComponent::FxnGetSpecificCircuit(TMap<int32, FVector2D> InputKet) {
+		ObjOperatorCount = InputList.Num();
+		ObjDimQ = intpow(2, ObjQubitCount);
+		float TempFloat = (float)(1.0 / ObjDimQ);
+		ObjFloatThreshold = 0.001 * TempFloat;
+		//TMap<int32, FVector2D> LocalStartKet;
+		//for (int32 i = 0; i < ObjDimQ; i++) {
+		//	if (SpecificStateMap.Contains(FIntPoint(-1, i))) {
+		//		LocalStartKet.Add(i, SpecificStateMap[FIntPoint(-1, i)]);
+		//	}
+		//}
+		LocalStateMap.Empty();4
+		LocalOperatorMap.Empty();
+		for (auto& iter : InputKet) {
+			LocalStateMap.Add(FIntPoint(-1, iter.Key), iter.Value);
+		}
+		//if (ObjStartStateIndex > 0 && ObjStartStateIndex < ObjDimQ) {
+		//	SpecificStateMap.Add(FIntPoint(-1, ObjStartStateIndex), FVector2D(1, 0));
+		//}
+		//else {
+		//	SpecificStateMap.Add(FIntPoint(-1, 0), FVector2D(1, 0));
+		//}
+		TMap<FIntPoint, FQuantumTransitionTo> LocalOperatorMap;
+		for (int32 i = 0; i < ObjOperatorCount; i++) {
+			for (int32 j = 0; j < ObjDimQ; j++) {
+				FIntPoint CurrentFIP = FIntPoint(i, j);
+				FIntPoint PreviousStateFIP = FIntPoint(i - 1, j);
+				if (SpecificStateMap.Contains(PreviousStateFIP) &&
+					GeneralOperatorMap.Contains(CurrentFIP)) {
+					FQuantumTransitionTo LocalFQTT;
+					GeneralOperatorMap[CurrentFIP];
+					if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 0) {
+						LocalFQTT.Enum_012_SameSplitFlip = 0;
+						LocalFQTT.EndState0 = GeneralOperatorMap[CurrentFIP].EndState0;
+						LocalFQTT.TransitionValue0 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue0);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState0), LocalFQTT.TransitionValue0);
+					}
+					else if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 1) {
+						LocalFQTT.Enum_012_SameSplitFlip = 1;
+						LocalFQTT.EndState0 = GeneralOperatorMap[CurrentFIP].EndState0;
+						LocalFQTT.TransitionValue0 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue0);
+						LocalFQTT.EndState1 = GeneralOperatorMap[CurrentFIP].EndState1;
+						LocalFQTT.TransitionValue1 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue1);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState0), LocalFQTT.TransitionValue0);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState1), LocalFQTT.TransitionValue1);
+					}
+					else if (GeneralOperatorMap[CurrentFIP].Enum_012_SameSplitFlip == 2) {
+						LocalFQTT.Enum_012_SameSplitFlip = 2;
+						LocalFQTT.EndState1 = GeneralOperatorMap[CurrentFIP].EndState1;
+						LocalFQTT.TransitionValue1 = ComplexMul(
+							SpecificStateMap[PreviousStateFIP],
+							GeneralOperatorMap[CurrentFIP].TransitionValue1);
+						FxnAddKetState(FIntPoint(CurrentFIP.X, LocalFQTT.EndState1), LocalFQTT.TransitionValue1);
+					}
+					LocalOperatorMap.Add(CurrentFIP, LocalFQTT);
+				}
+			}
+		}
+		//TArray<FIntPoint> KeySet;
+		//SpecificStateMap.GenerateKeyArray(KeySet);
+		//for (auto& iter: KeySet) {
+		//	float LocalSize = SpecificStateMap[iter].SizeSquared();
+		//	float LocalCompare = ObjFloatThreshold;
+		//	if (SpecificStateMap[iter].SizeSquared() < ((1 / ObjDimQ) * 0.001)) {
+		//		SpecificStateMap.Remove(iter);
+		//	}
+		//	if (LocalSize < LocalCompare) {
+		//		SpecificStateMap.Remove(iter);
+		//	}
+		//}
+		return LocalOperatorMap;
 }
